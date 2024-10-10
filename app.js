@@ -14,7 +14,11 @@ ctx.lineCap = 'round';
 // Character position and movement
 let characterX = canvas.width / 2;
 let characterY = canvas.height / 2;
-let speed = 5;
+let velocityY = 0;
+let speed = 10;
+let gravity = 0.5;
+let jumpStrength = -30;
+let isOnGround = false;
 let keys = {
     w: false,
     a: false,
@@ -29,34 +33,11 @@ let isMouthOpen = false;
 let mouthChangeInterval = 10; // Change mouth every 200ms
 let lastMouthChangeTime = 0;
 
-function drawCircleWithLegsArmsAndFace(x, y, size) {
+function drawCircleWithArmsAndFace(x, y, size) {
     // Draw the main circle
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
-    ctx.stroke();
-    
-    // Draw legs
-    const legLength = size * 1.5;
-    const footLength = size * 0.5;
-    const legAngle = Math.sin(time * 0.1) * Math.PI / 8; // Leg swing angle
-    
-    // Left leg
-    ctx.beginPath();
-    ctx.moveTo(x - size/2, y + size);
-    const leftLegEndX = x - size/2 - Math.sin(legAngle) * legLength;
-    const leftLegEndY = y + size + Math.cos(legAngle) * legLength;
-    ctx.lineTo(leftLegEndX, leftLegEndY);
-    ctx.lineTo(leftLegEndX - footLength, leftLegEndY);
-    ctx.stroke();
-    
-    // Right leg (opposite phase)
-    ctx.beginPath();
-    ctx.moveTo(x + size/2, y + size);
-    const rightLegEndX = x + size/2 + Math.sin(-legAngle) * legLength;
-    const rightLegEndY = y + size + Math.cos(-legAngle) * legLength;
-    ctx.lineTo(rightLegEndX, rightLegEndY);
-    ctx.lineTo(rightLegEndX + footLength, rightLegEndY);
     ctx.stroke();
     
     // Draw arms
@@ -112,19 +93,41 @@ function drawCircleWithLegsArmsAndFace(x, y, size) {
     }
     ctx.stroke();
 
+    // Draw nametag
+    ctx.font = `${size * 0.3}px Arial`;
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+    ctx.fillText("BIG BILLY", x, y - size - 10);
+
     hue++;
     if (hue >= 360) hue = 0;
 }
 
 function updateCharacterPosition() {
-    if (keys.w) characterY -= speed;
-    if (keys.s) characterY += speed;
     if (keys.a) characterX -= speed;
     if (keys.d) characterX += speed;
 
+    // Apply gravity
+    velocityY += gravity;
+    characterY += velocityY;
+
+    // Check for ground collision
+    if (characterY + 50 > canvas.height) {
+        characterY = canvas.height - 50;
+        velocityY = 0;
+        isOnGround = true;
+    } else {
+        isOnGround = false;
+    }
+
+    // Jump when 'W' is pressed and character is on the ground
+    if (keys.w && isOnGround) {
+        velocityY = jumpStrength;
+        isOnGround = false;
+    }
+
     // Keep character within canvas bounds
     characterX = Math.max(50, Math.min(canvas.width - 50, characterX));
-    characterY = Math.max(50, Math.min(canvas.height - 50, characterY));
 }
 
 function animate() {
@@ -140,7 +143,7 @@ function animate() {
         lastMouthChangeTime = time;
     }
     
-    drawCircleWithLegsArmsAndFace(characterX, characterY, 50);
+    drawCircleWithArmsAndFace(characterX, characterY, 50);
     
     time++;
     
